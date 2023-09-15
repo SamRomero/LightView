@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "1093641498020",
+    "project_id": "lightview-c38ca",
+    "storage_bucket": "lightview-c38ca.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1093641498020:android:5f86b1eef0278130a66531",
+        "android_client_info": {
+          "package_name": "com.example.lightview"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1093641498020-ndbrh7ql4jesuc43ibvr1uoe3j7nk2co.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.lightview",
+            "certificate_hash": "0cd3f8c3d4bc3d3313f2303aa869df10f34da3c3"
+          }
+        },
+        {
+          "client_id": "1093641498020-osfv6pb7ft227d3hnnp501dbro2nu02j.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDLxq8hiCx4H680-AGltlxlUJ3zj53u_6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1093641498020-osfv6pb7ft227d3hnnp501dbro2nu02j.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
