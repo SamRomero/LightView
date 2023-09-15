@@ -23,7 +23,8 @@ class _LucesState extends State<Luces> {
   List<bool> focoEncendido = [];
   final String arduinoIP = "http://192.168.0.98:80/";
   List<CustomButton> customButtons = [];
-  Widget? botonPersonalizado; // Cambio de tipo de variable
+  bool mostrarBotonPersonalizado = false;
+
 
   @override
   void initState() {
@@ -134,19 +135,7 @@ class _LucesState extends State<Luces> {
 
                     // Actualiza la vista para mostrar el botón personalizado
                     setState(() {
-                      botonPersonalizado = ElevatedButton(
-                        onPressed: () {
-                          // Lógica para ejecutar el botón personalizado
-                        },
-                        child: Text(
-                          customButtonName,
-                          style: TextStyle(fontSize: 18.0),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          primary: Colors.green,
-                          onPrimary: Colors.white,
-                        ),
-                      );
+                      mostrarBotonPersonalizado = true;
                     });
                   },
                   child: Text("Guardar"),
@@ -165,6 +154,7 @@ class _LucesState extends State<Luces> {
     );
   }
 
+
   void encenderTodos() {
     for (int i = 1; i <= focoEncendido.length; i++) {
       controlarFoco(i, true);
@@ -173,6 +163,7 @@ class _LucesState extends State<Luces> {
 
   @override
   Widget build(BuildContext context) {
+    print("Cantidad de botones personalizados en la lista: ${customButtons.length}");
     return Scaffold(
       appBar: AppBar(
         title: Text("Control de Luces"),
@@ -251,9 +242,14 @@ class _LucesState extends State<Luces> {
                               ),
                             ),
                             SizedBox(height: 10.0),
-                            if (botonPersonalizado != null) {
-                              botonPersonalizado!,
-                            },
+                            if (customButtons.isNotEmpty)
+                              ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: customButtons.length,
+                                itemBuilder: (context, index) {
+                                  return buildCustomButton(customButtons[index]);
+                                },
+                              ),
                           ],
                         ),
                     ],
@@ -312,6 +308,30 @@ class _LucesState extends State<Luces> {
         ],
       ),
     );
+  }
+
+  Widget buildCustomButton(CustomButton customButton) {
+    return Card(
+      color: Colors.deepPurple[300],
+      margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+      child: ListTile(
+        title: Text(
+          customButton.name,
+          style: TextStyle(color: Colors.white, fontSize: 20.0),
+        ),
+        onTap: () {
+          ejecutarCustomButton(customButton);
+        },
+      ),
+    );
+  }
+
+  void ejecutarCustomButton(CustomButton customButton) {
+    for (int i = 0; i < customButton.selectedFocos.length; i++) {
+      if (customButton.selectedFocos[i]) {
+        controlarFoco(i + 1, true);
+      }
+    }
   }
 }
 
