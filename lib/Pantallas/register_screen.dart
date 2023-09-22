@@ -22,33 +22,46 @@ class _CreateUserState extends State<CreateUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Tutorial Firebase"),
-      ),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text("Crear Usuario", style: TextStyle(color: Colors.black, fontSize: 24),),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepPurple, Colors.teal],
           ),
-          Offstage(
-            offstage:error == '' ,
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(error, style: TextStyle(color: Colors.red, fontSize: 16),),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                "Crear Usuario",
+                style: TextStyle(color: Colors.white, fontSize: 24),
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: formulario(),
-          ),
-          butonCrearUsuario(),
-        ],
+            Offstage(
+              offstage: error == '',
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  error,
+                  style: TextStyle(color: Colors.red, fontSize: 16),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: formulario(),
+            ),
+            butonCrearUsuario(),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget formulario() {
     return Form(

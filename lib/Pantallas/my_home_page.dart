@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'camaras.dart';
 import 'login_screen.dart';
 import 'luces.dart';
 import 'cam.dart';
@@ -30,7 +31,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final List<Widget> _screens = [
     Home(), // Pantalla Home (nueva)
     Luces(),
-    Cam(),
+    Camaras(),
   ];
 
   @override

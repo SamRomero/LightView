@@ -1,18 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Luces(),
-    );
-  }
-}
+import 'package:lightview/localstorage.dart';
 
 class Luces extends StatefulWidget {
   @override
@@ -20,133 +8,164 @@ class Luces extends StatefulWidget {
 }
 
 class _LucesState extends State<Luces> {
-  List<bool> focoEncendido = [];
-  final String arduinoIP = "http://192.168.0.98:80/";
-  List<CustomButton> customButtons = [];
-  bool mostrarBotonPersonalizado = false;
-
+  int numFocos = 0;
+  List<bool> focoEstados = [];
+  List<Map<String, dynamic>> rutinas = [];
 
   @override
   void initState() {
     super.initState();
-    obtenerNumeroDeFocos();
+    _getNumFocos();
+    LocalStorage().init();
+    printRutinas();
+    _loadRutinas();
   }
 
-  void controlarFoco(int focoNumero, bool encendido) async {
-    final url = arduinoIP + "relay$focoNumero/${encendido ? 'on' : 'off'}";
+  void _loadRutinas() async {
+    final localStorage = LocalStorage();
+    await localStorage.init();
+    setState(() {
+      rutinas = localStorage.getRutinas();
+    });
+  }
 
-    try {
-      final response = await http.post(Uri.parse(url));
+  void printRutinas() async {
+    final localStorage = LocalStorage();
+    await localStorage.init();
+    //await localStorage.clearRutinas();
+    final rutinas = localStorage.getRutinas();
 
-      if (response.statusCode == 200) {
+    if (rutinas.isNotEmpty) {
+      for (var i = 0; i < rutinas.length; i++) {
+        final rutina = rutinas[i];
+        print('Rutina ${i + 1}:');
+        print('Nombre: ${rutina['nombre']}');
+        print('Focos: ${rutina['focos']}');
+        print('Encender: ${rutina['encender']}');
+        print('\n');
+      }
+    } else {
+      print('No hay rutinas creadas.');
+    }
+  }
+
+  Future<void> _getNumFocos() async {
+    final response = await http.get(Uri.parse('http://192.168.0.98:80/mode/status'));
+    if (response.statusCode == 200) {
+      final parsedResponse = int.tryParse(response.body);
+      if (parsedResponse != null) {
         setState(() {
-          focoEncendido[focoNumero - 1] = encendido;
+          numFocos = parsedResponse;
+          focoEstados = List.generate(numFocos, (index) => false);
         });
-        print("Foco $focoNumero ${encendido ? 'encendido' : 'apagado'}");
-      } else {
-        print("Error al ${encendido ? 'encender' : 'apagar'} Foco $focoNumero");
+        _getFocoEstados();
       }
-    } catch (e) {
-      print("Error de red: $e");
+    } else {
+      // Manejo de errores aquí
     }
   }
 
-  Future<void> obtenerNumeroDeFocos() async {
-    final url = arduinoIP + "mode/status";
-
-    try {
-      final response = await http.get(Uri.parse(url));
-
+  Future<void> _getFocoEstados() async {
+    for (int i = 1; i <= numFocos; i++) {
+      final response = await http.get(Uri.parse('http://192.168.0.98:80/relay$i/status'));
       if (response.statusCode == 200) {
-        final numFocos = int.tryParse(response.body) ?? 0;
-
-        try {
-          for (int i = 1; i <= numFocos; i++) {
-            final urlStatus = arduinoIP + "relay$i/status";
-            final response = await http.get(Uri.parse(urlStatus));
-
-            if (response.statusCode == 200) {
-              final responseBody = response.body.toLowerCase();
-              final encendido = responseBody.contains("encendido");
-              setState(() {
-                focoEncendido.add(encendido);
-              });
-            } else {
-              print("Error al obtener el estado del Foco $i");
-            }
-          }
-        } catch (e) {
-          print("Error de red: $e");
-        }
+        final responseBody = response.body.toLowerCase();
+        setState(() {
+          focoEstados[i - 1] = responseBody.contains('encendido');
+        });
       } else {
-        print("Error al obtener el número de focos");
+        // Manejo de errores aquí
       }
-    } catch (e) {
-      print("Error de red: $e");
     }
   }
 
-  void agregarCustomButton() {
-    showDialog(
+  Future<void> _cambiarEstadoFoco(int index, bool encender) async {
+    final response = await http.post(
+      Uri.parse('http://192.168.0.98:80/relay${index + 1}/${encender ? 'on' : 'off'}'),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        focoEstados[index] = encender;
+      });
+    } else {
+      // Manejo de errores aquí
+    }
+  }
+
+  void _mostrarSeleccionadorFocos(BuildContext context) {
+    final TextEditingController nombreController = TextEditingController();
+    final List<int> focosSeleccionados = List<int>.generate(numFocos, (index) => index);
+    bool encenderFocos = false;
+
+    showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        String customButtonName = "";
-        List<bool> selectedFocos = List.generate(focoEncendido.length, (index) => false);
-
         return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              title: Text("Agregar Botón Personalizado"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    decoration: InputDecoration(labelText: "Nombre del botón"),
-                    onChanged: (value) {
-                      customButtonName = value;
-                    },
-                  ),
-                  SizedBox(height: 10.0),
-                  Text("Selecciona los focos a encender:"),
-                  Column(
-                    children: List.generate(
-                      focoEncendido.length,
-                          (index) {
-                        return CheckboxListTile(
-                          title: Text("Foco ${index + 1}"),
-                          value: selectedFocos[index],
+          builder: (BuildContext context, StateSetter setState) {
+            return SingleChildScrollView(
+              child: Container(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: encenderFocos,
                           onChanged: (value) {
                             setState(() {
-                              selectedFocos[index] = value!;
+                              encenderFocos = value ?? false;
                             });
                           },
+                        ),
+                        Text('Encender los focos'),
+                      ],
+                    ),
+                    Text(
+                      'Selecciona los focos que deseas controlar:',
+                      style: TextStyle(fontSize: 18.0),
+                    ),
+                    SizedBox(height: 10.0),
+                    ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: numFocos,
+                      itemBuilder: (context, index) {
+                        return ListTile(
+                          title: Text('Foco ${index + 1}'),
+                          trailing: Checkbox(
+                            value: focosSeleccionados.contains(index),
+                            onChanged: (value) {
+                              setState(() {
+                                if (value!) {
+                                  focosSeleccionados.add(index);
+                                } else {
+                                  focosSeleccionados.remove(index);
+                                }
+                              });
+                            },
+                          ),
                         );
                       },
                     ),
-                  ),
-                ],
+                    SizedBox(height: 10.0),
+                    TextField(
+                      controller: nombreController,
+                      decoration: InputDecoration(
+                        labelText: 'Nombre de la rutina',
+                      ),
+                    ),
+                    SizedBox(height: 10.0),
+                    ElevatedButton(
+                      onPressed: () async {
+                        await LocalStorage().addRutina(nombreController.text, focosSeleccionados, encenderFocos);
+                        _loadRutinas(); // Actualiza la lista de rutinas
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Aplicar cambios y guardar rutina'),
+                    ),
+                  ],
+                ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    // Agregar el botón personalizado a la lista
-                    customButtons.add(CustomButton(customButtonName, selectedFocos));
-                    Navigator.of(context).pop();
-
-                    // Actualiza la vista para mostrar el botón personalizado
-                    setState(() {
-                      mostrarBotonPersonalizado = true;
-                    });
-                  },
-                  child: Text("Guardar"),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("Cancelar"),
-                ),
-              ],
             );
           },
         );
@@ -154,20 +173,31 @@ class _LucesState extends State<Luces> {
     );
   }
 
+  List<Widget> _buildRutinaButtons() {
+    if (rutinas.isNotEmpty) {
+      return rutinas.map((rutina) {
+        return ElevatedButton(
+          onPressed: () {
+            final focos = rutina['focos'] as List<dynamic>;
+            final encender = rutina['encender'] as bool;
 
-  void encenderTodos() {
-    for (int i = 1; i <= focoEncendido.length; i++) {
-      controlarFoco(i, true);
+            print('$focos $encender');
+            for (final index in focos) {
+              print(index);
+              _cambiarEstadoFoco(index, encender);
+            }
+          },
+          child: Text(rutina['nombre'] as String),
+        );
+      }).toList();
+    } else {
+      return [Text('No hay rutinas creadas.')];
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    print("Cantidad de botones personalizados en la lista: ${customButtons.length}");
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Control de Luces"),
-      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -176,89 +206,69 @@ class _LucesState extends State<Luces> {
             colors: [Colors.deepPurple, Colors.teal],
           ),
         ),
-        child: SingleChildScrollView(
-          child: Center(
-            child: Column(
-              children: <Widget>[
-                SizedBox(height: 30.0),
-                Icon(
-                  Icons.lightbulb,
-                  size: 100.0,
-                  color: Colors.amber,
-                ),
-                SizedBox(height: 20.0),
-                Padding(
-                  padding: const EdgeInsets.only(top: 10.0),
-                  child: Column(
-                    children: [
-                      Text(
-                        'Focos Disponibles',
-                        style: TextStyle(fontSize: 24.0, color: Colors.white),
-                      ),
-                      SizedBox(height: 20.0),
-                      if (focoEncendido.isNotEmpty)
-                        Column(
-                          children: [
-                            SizedBox(height: 10.0),
-                            GridView.builder(
-                              shrinkWrap: true,
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 1.5,
-                              ),
-                              itemCount: focoEncendido.length,
-                              itemBuilder: (context, index) {
-                                return buildFocoCard(index + 1);
-                              },
-                            ),
-                            SizedBox(height: 30.0),
-                            Text(
-                              'Comandos personalizados',
-                              style: TextStyle(fontSize: 24.0, color: Colors.white),
-                            ),
-                            SizedBox(height: 20.0),
-                            ElevatedButton(
-                              onPressed: encenderTodos,
-                              child: Text(
-                                'Bienvenido a casa',
-                                style: TextStyle(fontSize: 18.0),
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                primary: Colors.green,
-                                onPrimary: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 10.0),
-                            ElevatedButton(
-                              onPressed: () {
-                                agregarCustomButton();
-                              },
-                              child: Icon(Icons.add),
-                              style: ElevatedButton.styleFrom(
-                                shape: CircleBorder(),
-                                padding: EdgeInsets.all(20.0),
-                                primary: Colors.green,
-                                onPrimary: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 10.0),
-                            if (customButtons.isNotEmpty)
-                              ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: customButtons.length,
-                                itemBuilder: (context, index) {
-                                  return buildCustomButton(customButtons[index]);
-                                },
-                              ),
-                          ],
-                        ),
-                    ],
+        child: ListView(
+          children: [
+            SizedBox(height: 10.0), // Agregar espacio en la parte superior
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lightbulb,
+                    size: 100.0, // Tamaño del ícono
+                    color: Colors.amber,
                   ),
-                ),
-              ],
+                  SizedBox(width: 16.0),
+                  Text(
+                    'Focos disponibles',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 24.0,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+            numFocos == 0
+                ? Center(
+              child: CircularProgressIndicator(),
+            )
+                : GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, // 2 columnas por fila
+                childAspectRatio: 1.3, // Ajusta este valor para reducir el tamaño verticalmente
+              ),
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: numFocos,
+              itemBuilder: (context, index) {
+                return buildFocoCard(index + 1);
+              },
+            ),
+            SizedBox(height: 10.0),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Rutinas:',
+                style: TextStyle(fontSize: 20.0, fontWeight: FontWeight.bold, color: Colors.white),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            SizedBox(height: 10.0),
+            Column(
+              children: _buildRutinaButtons(),
+            ),
+          ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _mostrarSeleccionadorFocos(context);
+        },
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -266,21 +276,21 @@ class _LucesState extends State<Luces> {
   Widget buildFocoCard(int focoNumero) {
     return Card(
       color: Colors.deepPurple[300],
-      margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
+      margin: EdgeInsets.all(10.0), // Margen alrededor de cada tarjeta
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center, // Centra verticalmente
+        crossAxisAlignment: CrossAxisAlignment.stretch, // Alinea el contenido al estiramiento horizontal
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(10.0),
-                child: Text(
-                  'Foco $focoNumero',
-                  style: TextStyle(color: Colors.white, fontSize: 20.0),
-                ),
-              ),
-            ],
+          // Nombre del foco
+          Padding(
+            padding: const EdgeInsets.only(top: 10.0),
+            child: Text(
+              'Foco $focoNumero',
+              style: TextStyle(color: Colors.white, fontSize: 22.0),
+              textAlign: TextAlign.center,
+            ),
           ),
+          // Ícono e interruptor
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -293,53 +303,20 @@ class _LucesState extends State<Luces> {
                 ),
               ),
               Switch(
-                value: focoEncendido[focoNumero - 1],
+                value: focoEstados[focoNumero - 1],
                 onChanged: (value) {
-                  setState(() {
-                    focoEncendido[focoNumero - 1] = value;
-                  });
-                  controlarFoco(focoNumero, value);
+                  _cambiarEstadoFoco(focoNumero - 1, value);
                 },
                 activeColor: Colors.green,
                 activeTrackColor: Colors.green[700],
               ),
             ],
           ),
+          SizedBox(height: 5.0), // Espacio inferior reducido
         ],
       ),
     );
   }
-
-  Widget buildCustomButton(CustomButton customButton) {
-    return Card(
-      color: Colors.deepPurple[300],
-      margin: EdgeInsets.symmetric(vertical: 10.0, horizontal: 10.0),
-      child: ListTile(
-        title: Text(
-          customButton.name,
-          style: TextStyle(color: Colors.white, fontSize: 20.0),
-        ),
-        onTap: () {
-          ejecutarCustomButton(customButton);
-        },
-      ),
-    );
-  }
-
-  void ejecutarCustomButton(CustomButton customButton) {
-    for (int i = 0; i < customButton.selectedFocos.length; i++) {
-      if (customButton.selectedFocos[i]) {
-        controlarFoco(i + 1, true);
-      }
-    }
-  }
-}
-
-class CustomButton {
-  String name;
-  List<bool> selectedFocos;
-
-  CustomButton(this.name, this.selectedFocos);
 }
 
 

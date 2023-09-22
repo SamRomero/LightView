@@ -28,44 +28,54 @@ class _LoginState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        centerTitle: true,
-        title: Text("Tutorial Firebase"),
-      ),
-      body: Column(
-        mainAxisSize: MainAxisSize.max,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              "Login Page",
-              style: TextStyle(color: Colors.black, fontSize: 24),
-            ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.deepPurple, Colors.teal],
           ),
-          Offstage(
-            offstage: error == '',
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                error,
-                style: TextStyle(color: Colors.red, fontSize: 16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Column(
+              children: [
+                Icon(
+                  Icons.lightbulb_circle_sharp, // Cambia a tu icono deseado
+                  size: 100, // Ajusta el tamaño del ícono según tus preferencias
+                  color: Colors.amberAccent[100],
+                ),
+                SizedBox(height: 16), // Espacio entre el ícono y el texto
+                Text(
+                  "Inicio de Sesión",
+                  style: TextStyle(color: Colors.white, fontSize: 24),
+                ),
+              ],
+            ),
+            Offstage(
+              offstage: error == '',
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Text(
+                  error,
+                  style: TextStyle(color: Colors.red, fontSize: 16),
+                ),
               ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: formulario(),
-          ),
-          butonLogin(),
-          nuevoAqui(),
-          buildOrLine(),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: formulario(),
+            ),
+            butonLogin(),
+            nuevoAqui(),
+            buildOrLine(),
+          ],
+        ),
       ),
     );
   }
-
-
 
 
   Widget buildOrLine() {
@@ -88,7 +98,7 @@ class _LoginState extends State<LoginPage> {
       mainAxisSize: MainAxisSize.max,
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text("Nuevo aqui"),
+        Text("¿Nuevo aquí?"),
         TextButton(
             onPressed: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => CreateUserPage()));
@@ -115,7 +125,7 @@ class _LoginState extends State<LoginPage> {
       decoration: InputDecoration(
           labelText: "Correo",
           border: OutlineInputBorder(
-              borderRadius: new BorderRadius.circular(8), borderSide: new BorderSide(color: Colors.black))),
+              borderRadius: new BorderRadius.circular(8), borderSide: new BorderSide(color: Colors.white))),
       keyboardType: TextInputType.emailAddress,
       onSaved: (String? value) {
         email = value!;
@@ -134,7 +144,7 @@ class _LoginState extends State<LoginPage> {
       decoration: InputDecoration(
           labelText: "Password",
           border: OutlineInputBorder(
-              borderRadius: new BorderRadius.circular(8), borderSide: new BorderSide(color: Colors.black))),
+              borderRadius: new BorderRadius.circular(8), borderSide: new BorderSide(color: Colors.white))),
       obscureText: true,
       validator: (value) {
         if (value!.isEmpty) {

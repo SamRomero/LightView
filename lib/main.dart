@@ -25,15 +25,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TrackFit',
-      theme: ThemeData(
-        primarySwatch: Colors.green,
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.deepPurple, Colors.teal],
+        ),
       ),
-      initialRoute: '/home',
-      routes: {
-        '/home': (context) => MyHomePage(title: 'Home', onTabSelected: (int value) {  },),
-      },
+      child: MaterialApp(
+        title: 'LightView',
+        theme: ThemeData(
+          primarySwatch: Colors.green,
+        ),
+        initialRoute: '/home',
+        routes: {
+          '/home': (context) => MyHomePage(title: 'a', onTabSelected: (int value) { 0; },)
+        },
+      ),
     );
   }
+
 }
